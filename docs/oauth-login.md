@@ -100,8 +100,47 @@ variable equivalent). Flags apply only to the `stdio` command.
 | `--oauth-scopes` | `GITHUB_OAUTH_SCOPES` | Comma-separated scopes to request. Also [filters tools](#scope-filtering) to those scopes. Defaults to the full supported set. |
 | `--oauth-callback-port` | `GITHUB_OAUTH_CALLBACK_PORT` | Fixed local port for the callback server. Defaults to a random port; set a fixed port when mapping it through Docker. |
 
-A static token still takes precedence: if `GITHUB_PERSONAL_ACCESS_TOKEN` is set,
-the server uses it and skips OAuth entirely.
+A static token still takes precedence over OAuth: if
+`GITHUB_PERSONAL_ACCESS_TOKEN` is set, the server uses it and skips OAuth
+entirely.
+
+## GitHub App installation authentication
+
+For non-interactive server-to-server authentication, configure a GitHub App and
+let the server mint installation access tokens. Tokens are cached and refreshed
+automatically before they expire.
+
+| Flag | Environment variable | Description |
+|------|----------------------|-------------|
+| `--app-id` | `GITHUB_APP_ID` | GitHub App ID. |
+| `--app-private-key-path` | `GITHUB_APP_PRIVATE_KEY_PATH` | Path to the GitHub App private key PEM file. |
+| `--app-private-key-command` | `GITHUB_APP_PRIVATE_KEY_COMMAND` | Command that writes the GitHub App private key PEM to stdout. Use this instead of `--app-private-key-path` to integrate with a secrets manager. |
+| `--app-installation-id` | `GITHUB_APP_INSTALLATION_ID` | Installation ID to authenticate as. |
+| `--app-installation-org` | `GITHUB_APP_INSTALLATION_ORG` | Organization used to resolve the installation ID. |
+| `--app-installation-repo` | `GITHUB_APP_INSTALLATION_REPO` | Repository in `owner/repo` form used to resolve the installation ID. |
+| `--app-installation-user` | `GITHUB_APP_INSTALLATION_USER` | User used to resolve the installation ID. |
+
+Set `GITHUB_APP_ID`, exactly one of `GITHUB_APP_PRIVATE_KEY_PATH` or
+`GITHUB_APP_PRIVATE_KEY_COMMAND`, and exactly one of
+`GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_INSTALLATION_ORG`,
+`GITHUB_APP_INSTALLATION_REPO`, or `GITHUB_APP_INSTALLATION_USER`.
+
+```bash
+GITHUB_APP_ID=12345 \
+GITHUB_APP_INSTALLATION_REPO=octo-org/octo-repo \
+GITHUB_APP_PRIVATE_KEY_PATH=/path/to/private-key.pem \
+github-mcp-server stdio
+```
+
+```bash
+GITHUB_APP_ID=12345 \
+GITHUB_APP_INSTALLATION_ORG=octo-org \
+GITHUB_APP_PRIVATE_KEY_COMMAND='op read "op://Engineering/GitHub App/private key"' \
+github-mcp-server stdio
+```
+
+GitHub App authentication is mutually exclusive with
+`GITHUB_PERSONAL_ACCESS_TOKEN` and OAuth login.
 
 ## Scope filtering
 

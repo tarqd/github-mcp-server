@@ -139,6 +139,46 @@ func Test_GetMe(t *testing.T) {
 	}
 }
 
+func Test_GetMe_GitHubAppInstallationIdentity(t *testing.T) {
+	t.Parallel()
+
+	serverTool := GetMe(translations.NullTranslationHelper)
+	deps := &BaseDeps{
+		GitHubAppIdentity: &GitHubAppInstallationIdentity{
+			AppID:                 123,
+			AppSlug:               "codex-test",
+			AppName:               "Codex Test",
+			AppURL:                "https://github.com/apps/codex-test",
+			BotLogin:              "codex-test[bot]",
+			InstallationID:        456,
+			InstallationTarget:    "Organization",
+			InstallationAccount:   "octo-org",
+			InstallationAccountID: 789,
+			RepositorySelection:   "selected",
+		},
+		Obsv: stubExporters(),
+	}
+	handler := serverTool.Handler(deps)
+
+	request := createMCPRequest(map[string]any{})
+	result, err := handler(ContextWithDeps(context.Background(), deps), &request)
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	textContent := getTextResult(t, result)
+	var identity GitHubAppInstallationIdentity
+	err = json.Unmarshal([]byte(textContent.Text), &identity)
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(123), identity.AppID)
+	assert.Equal(t, "codex-test", identity.AppSlug)
+	assert.Equal(t, "Codex Test", identity.AppName)
+	assert.Equal(t, "codex-test[bot]", identity.BotLogin)
+	assert.Equal(t, int64(456), identity.InstallationID)
+	assert.Equal(t, "octo-org", identity.InstallationAccount)
+	assert.Equal(t, "selected", identity.RepositorySelection)
+}
+
 func Test_GetMe_IFC_FeatureFlag(t *testing.T) {
 	t.Parallel()
 

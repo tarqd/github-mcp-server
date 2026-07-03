@@ -73,6 +73,16 @@ type MCPServerConfig struct {
 	// token is obtained lazily on first use and refreshed thereafter.
 	TokenProvider func() string
 
+	// GitHubAppInstallationToken indicates that TokenProvider supplies GitHub
+	// App installation access tokens. It enables filters for tools that
+	// installation tokens can never use.
+	GitHubAppInstallationToken bool
+
+	// GitHubAppIdentity describes the App installation used by local GitHub App
+	// authentication. Context tools can use this for identity without calling
+	// user-scoped endpoints.
+	GitHubAppIdentity *GitHubAppInstallationIdentity
+
 	// Additional server options to apply
 	ServerOptions []MCPServerOption
 }

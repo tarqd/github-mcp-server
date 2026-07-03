@@ -164,6 +164,7 @@ func NewStdioMCPServer(ctx context.Context, cfg github.MCPServerConfig) (*mcp.Se
 		featureChecker,
 		obs,
 	)
+	deps.GitHubAppIdentity = cfg.GitHubAppIdentity
 	// Build and register the tool/resource/prompt inventory
 	inventoryBuilder := github.NewInventory(cfg.Translator).
 		WithDeprecatedAliases(github.DeprecatedToolAliases).
@@ -177,6 +178,9 @@ func NewStdioMCPServer(ctx context.Context, cfg github.MCPServerConfig) (*mcp.Se
 	// Apply token scope filtering if scopes are known (for PAT filtering)
 	if cfg.TokenScopes != nil {
 		inventoryBuilder = inventoryBuilder.WithFilter(github.CreateToolScopeFilter(cfg.TokenScopes))
+	}
+	if cfg.GitHubAppInstallationToken {
+		inventoryBuilder = inventoryBuilder.WithFilter(github.CreateGitHubAppInstallationTokenFilter())
 	}
 
 	inventory, err := inventoryBuilder.Build()
@@ -257,15 +261,30 @@ type StdioServerConfig struct {
 	// are hidden. The default set is the full supported list, which hides
 	// nothing; an explicit, narrower list filters accordingly.
 	OAuthScopes []string
+
+	// GitHubAppTokenProvider, when non-nil, supplies GitHub App installation
+	// access tokens and refreshes them as they expire.
+	GitHubAppTokenProvider func() string
+
+	// GitHubAppIdentity describes the App installation used by local GitHub App
+	// authentication.
+	GitHubAppIdentity *github.GitHubAppInstallationIdentity
 }
 
 // RunStdioServer is not concurrent safe.
 func RunStdioServer(cfg StdioServerConfig) error {
-	// OAuth login and a static token are mutually exclusive: they would
-	// disagree on how the token is sourced (lazy provider vs. static) and on
-	// scope filtering, so reject the ambiguous combination up front.
-	if cfg.OAuthManager != nil && cfg.Token != "" {
-		return fmt.Errorf("OAuthManager and a static Token are mutually exclusive: provide one or the other")
+	authMethods := 0
+	if cfg.Token != "" {
+		authMethods++
+	}
+	if cfg.OAuthManager != nil {
+		authMethods++
+	}
+	if cfg.GitHubAppTokenProvider != nil {
+		authMethods++
+	}
+	if authMethods > 1 {
+		return fmt.Errorf("static Token, OAuthManager, and GitHubAppTokenProvider are mutually exclusive: provide only one")
 	}
 
 	// Create app context
@@ -307,34 +326,40 @@ func RunStdioServer(cfg StdioServerConfig) error {
 	case cfg.OAuthManager != nil:
 		tokenScopes = cfg.OAuthScopes
 		logger.Info("using requested OAuth scopes for tool filtering", "scopes", tokenScopes)
+	case cfg.GitHubAppTokenProvider != nil:
+		logger.Debug("skipping scope filtering for GitHub App installation token")
 	default:
 		logger.Debug("skipping scope filtering for non-PAT token")
 	}
 
-	// For OAuth, the token is resolved lazily: empty until the user authorizes
-	// on the first tool call, then refreshed for the rest of the session.
+	// For OAuth and GitHub App authentication, the token is resolved lazily and
+	// refreshed behind a provider instead of being pinned into the clients.
 	var tokenProvider func() string
 	if cfg.OAuthManager != nil {
 		tokenProvider = cfg.OAuthManager.AccessToken
+	} else if cfg.GitHubAppTokenProvider != nil {
+		tokenProvider = cfg.GitHubAppTokenProvider
 	}
 
 	ghServer, err := NewStdioMCPServer(ctx, github.MCPServerConfig{
-		Version:           cfg.Version,
-		Host:              cfg.Host,
-		Token:             cfg.Token,
-		EnabledToolsets:   cfg.EnabledToolsets,
-		EnabledTools:      cfg.EnabledTools,
-		EnabledFeatures:   cfg.EnabledFeatures,
-		ReadOnly:          cfg.ReadOnly,
-		Translator:        t,
-		ContentWindowSize: cfg.ContentWindowSize,
-		LockdownMode:      cfg.LockdownMode,
-		InsidersMode:      cfg.InsidersMode,
-		ExcludeTools:      cfg.ExcludeTools,
-		Logger:            logger,
-		RepoAccessTTL:     cfg.RepoAccessCacheTTL,
-		TokenScopes:       tokenScopes,
-		TokenProvider:     tokenProvider,
+		Version:                    cfg.Version,
+		Host:                       cfg.Host,
+		Token:                      cfg.Token,
+		EnabledToolsets:            cfg.EnabledToolsets,
+		EnabledTools:               cfg.EnabledTools,
+		EnabledFeatures:            cfg.EnabledFeatures,
+		ReadOnly:                   cfg.ReadOnly,
+		Translator:                 t,
+		ContentWindowSize:          cfg.ContentWindowSize,
+		LockdownMode:               cfg.LockdownMode,
+		InsidersMode:               cfg.InsidersMode,
+		ExcludeTools:               cfg.ExcludeTools,
+		Logger:                     logger,
+		RepoAccessTTL:              cfg.RepoAccessCacheTTL,
+		TokenScopes:                tokenScopes,
+		TokenProvider:              tokenProvider,
+		GitHubAppInstallationToken: cfg.GitHubAppTokenProvider != nil,
+		GitHubAppIdentity:          cfg.GitHubAppIdentity,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create MCP server: %w", err)
