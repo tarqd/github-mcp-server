@@ -62,3 +62,34 @@ func CreateToolScopeFilter(tokenScopes []string) inventory.ToolFilter {
 		return scopes.HasRequiredScopes(tokenScopes, tool.AcceptedScopes), nil
 	}
 }
+
+var installationTokenUnsupportedTools = map[string]bool{
+	// Authenticated-user starring endpoints require user credentials.
+	"star_repository":   true,
+	"unstar_repository": true,
+
+	// Notification endpoints are user inbox operations and explicitly do not
+	// accept GitHub App installation access tokens.
+	"list_notifications":                          true,
+	"get_notification_details":                    true,
+	"dismiss_notification":                        true,
+	"mark_all_notifications_read":                 true,
+	"manage_notification_subscription":            true,
+	"manage_repository_notification_subscription": true,
+
+	// Gist endpoints are user-scoped and do not accept installation tokens.
+	"list_gists":  true,
+	"get_gist":    true,
+	"create_gist": true,
+	"update_gist": true,
+}
+
+// CreateGitHubAppInstallationTokenFilter hides tools whose GitHub endpoints are
+// not supported by GitHub App installation access tokens at all. This is not a
+// broad App-permission mapper; endpoint-specific App permissions are still
+// enforced by the GitHub API.
+func CreateGitHubAppInstallationTokenFilter() inventory.ToolFilter {
+	return func(_ context.Context, tool *inventory.ServerTool) (bool, error) {
+		return !installationTokenUnsupportedTools[tool.Tool.Name], nil
+	}
+}

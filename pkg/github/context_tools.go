@@ -41,6 +41,10 @@ type UserDetails struct {
 	OwnedPrivateRepos int64     `json:"owned_private_repos,omitempty"`
 }
 
+type githubAppInstallationIdentityProvider interface {
+	GetGitHubAppInstallationIdentity(context.Context) (*GitHubAppInstallationIdentity, bool)
+}
+
 // GetMe creates a tool to get details of the authenticated user.
 func GetMe(t translations.TranslationHelperFunc) inventory.ServerTool {
 	return NewTool(
@@ -64,6 +68,14 @@ func GetMe(t translations.TranslationHelperFunc) inventory.ServerTool {
 		},
 		nil,
 		func(ctx context.Context, deps ToolDependencies, _ *mcp.CallToolRequest, _ map[string]any) (*mcp.CallToolResult, any, error) {
+			if provider, ok := deps.(githubAppInstallationIdentityProvider); ok {
+				if identity, ok := provider.GetGitHubAppInstallationIdentity(ctx); ok {
+					result := MarshalledTextResult(identity)
+					result = attachStaticIFCLabel(ctx, deps, result, ifc.LabelGetMe())
+					return result, nil, nil
+				}
+			}
+
 			client, err := deps.GetClient(ctx)
 			if err != nil {
 				return utils.NewToolResultErrorFromErr("failed to get GitHub client", err), nil, nil

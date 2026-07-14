@@ -189,3 +189,56 @@ func TestCreateToolScopeFilter_Integration(t *testing.T) {
 	assert.Contains(t, toolNames, "repo_tool")
 	assert.NotContains(t, toolNames, "gist_tool")
 }
+
+func TestCreateGitHubAppInstallationTokenFilter(t *testing.T) {
+	tests := []struct {
+		name     string
+		toolName string
+		want     bool
+	}{
+		{name: "repo tools remain available", toolName: "get_file_contents", want: true},
+		{name: "actions tools remain available", toolName: "actions_list", want: true},
+		{name: "get_me remains available for app identity", toolName: "get_me", want: true},
+		{name: "notification tool is hidden", toolName: "list_notifications", want: false},
+		{name: "gist tool is hidden", toolName: "create_gist", want: false},
+		{name: "user starring tool is hidden", toolName: "star_repository", want: false},
+	}
+
+	filter := CreateGitHubAppInstallationTokenFilter()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := filter(context.Background(), &inventory.ServerTool{Tool: mcp.Tool{Name: tt.toolName}})
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestCreateGitHubAppInstallationTokenFilter_Integration(t *testing.T) {
+	tools := []inventory.ServerTool{
+		{
+			Tool:    mcp.Tool{Name: "get_file_contents"},
+			Toolset: inventory.ToolsetMetadata{ID: "repos"},
+		},
+		{
+			Tool:    mcp.Tool{Name: "list_notifications"},
+			Toolset: inventory.ToolsetMetadata{ID: "notifications"},
+		},
+		{
+			Tool:    mcp.Tool{Name: "create_gist"},
+			Toolset: inventory.ToolsetMetadata{ID: "gists"},
+		},
+	}
+
+	inv, err := inventory.NewBuilder().
+		SetTools(tools).
+		WithToolsets([]string{"repos", "notifications", "gists"}).
+		WithTools([]string{"create_gist"}).
+		WithFilter(CreateGitHubAppInstallationTokenFilter()).
+		Build()
+	require.NoError(t, err)
+
+	availableTools := inv.AvailableTools(context.Background())
+	require.Len(t, availableTools, 1)
+	assert.Equal(t, "get_file_contents", availableTools[0].Tool.Name)
+}

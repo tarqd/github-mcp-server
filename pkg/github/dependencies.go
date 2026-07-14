@@ -107,6 +107,21 @@ type ToolDependencies interface {
 	Metrics(ctx context.Context) metrics.Metrics
 }
 
+// GitHubAppInstallationIdentity describes the GitHub App installation used for
+// local installation-token authentication.
+type GitHubAppInstallationIdentity struct {
+	AppID                 int64  `json:"app_id"`
+	AppSlug               string `json:"app_slug,omitempty"`
+	AppName               string `json:"app_name,omitempty"`
+	AppURL                string `json:"app_url,omitempty"`
+	BotLogin              string `json:"bot_login,omitempty"`
+	InstallationID        int64  `json:"installation_id"`
+	InstallationTarget    string `json:"installation_target,omitempty"`
+	InstallationAccount   string `json:"installation_account,omitempty"`
+	InstallationAccountID int64  `json:"installation_account_id,omitempty"`
+	RepositorySelection   string `json:"repository_selection,omitempty"`
+}
+
 // BaseDeps is the standard implementation of ToolDependencies for the local server.
 // It stores pre-created clients. The remote server can create its own struct
 // implementing ToolDependencies with different client creation strategies.
@@ -121,6 +136,7 @@ type BaseDeps struct {
 	T                 translations.TranslationHelperFunc
 	Flags             FeatureFlags
 	ContentWindowSize int
+	GitHubAppIdentity *GitHubAppInstallationIdentity
 
 	// Feature flag checker for runtime checks
 	featureChecker inventory.FeatureFlagChecker
@@ -185,6 +201,16 @@ func (d BaseDeps) GetFlags(_ context.Context) FeatureFlags { return d.Flags }
 
 // GetContentWindowSize implements ToolDependencies.
 func (d BaseDeps) GetContentWindowSize() int { return d.ContentWindowSize }
+
+// GetGitHubAppInstallationIdentity returns the configured GitHub App identity,
+// when the server is using GitHub App installation authentication.
+func (d BaseDeps) GetGitHubAppInstallationIdentity(_ context.Context) (*GitHubAppInstallationIdentity, bool) {
+	if d.GitHubAppIdentity == nil {
+		return nil, false
+	}
+	identity := *d.GitHubAppIdentity
+	return &identity, true
+}
 
 // Logger implements ToolDependencies.
 func (d BaseDeps) Logger(_ context.Context) *slog.Logger {

@@ -2,7 +2,7 @@
 
 The GitHub MCP Server automatically filters available tools based on your classic Personal Access Token's (PAT) OAuth scopes. This ensures you only see tools that your token has permission to use, reducing clutter and preventing errors from attempting operations your token can't perform.
 
-> **Note:** This feature applies to **classic PATs** (tokens starting with `ghp_`). Fine-grained PATs, GitHub App installation tokens, and server-to-server tokens don't support scope detection and show all tools.
+> **Note:** OAuth scope filtering applies to **classic PATs** (tokens starting with `ghp_`). Fine-grained PATs and most server-to-server tokens don't support scope detection and show all tools. Locally configured GitHub App installation authentication applies a small static filter for tools backed by endpoints that do not accept installation tokens.
 
 ## How It Works
 
@@ -17,7 +17,7 @@ When the server starts with a classic PAT, it makes a lightweight HTTP HEAD requ
 | **Classic PAT** (`ghp_`) | Filters tools at startup based on token scopes—tools requiring unavailable scopes are hidden |
 | **OAuth** (remote server only) | Uses OAuth scope challenges—when a tool needs a scope you haven't granted, you're prompted to authorize it |
 | **Fine-grained PAT** (`github_pat_`) | No filtering—all tools shown, API enforces permissions |
-| **GitHub App** (`ghs_`) | No filtering—all tools shown, permissions based on app installation |
+| **GitHub App** (`ghs_`) | No OAuth scope filtering. For locally minted installation tokens, hides tools whose endpoints do not accept installation tokens; API enforces App permissions for the rest |
 | **Server-to-server** | No filtering—all tools shown, permissions based on app/token configuration |
 
 With OAuth, the remote server can dynamically request additional scopes as needed. With PATs, scopes are fixed at token creation, so the server proactively hides tools you can't use.
@@ -84,7 +84,7 @@ WARN: failed to fetch token scopes, continuing without scope filtering
 
 ## GitHub App and Server-to-Server Tokens
 
-**GitHub App installation tokens** (`ghs_` prefix) and other server-to-server tokens use a permission model based on the app's installation permissions rather than OAuth scopes. These tokens don't return the `X-OAuth-Scopes` header, so scope filtering is skipped. The GitHub API enforces permissions based on the app's configuration.
+**GitHub App installation tokens** (`ghs_` prefix) and other server-to-server tokens use a permission model based on the app's installation permissions rather than OAuth scopes. These tokens don't return the `X-OAuth-Scopes` header, so OAuth scope filtering is skipped. When the local server mints installation tokens from `GITHUB_APP_ID` and private-key configuration, it hides tools that are backed by endpoints that do not accept installation access tokens, such as user notifications, gists, and starring or unstarring repositories. The GitHub API still enforces App permissions and repository access for all other tools. The `get_me` tool remains available and reports the configured GitHub App and installation identity instead of calling the user-profile endpoint.
 
 ## Troubleshooting
 

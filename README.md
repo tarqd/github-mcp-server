@@ -344,6 +344,12 @@ See **[Local Server OAuth Login](docs/oauth-login.md)** for the native-binary fl
 }
 ```
 
+**Or authenticate with a GitHub App installation.** Set `GITHUB_APP_ID`, either
+`GITHUB_APP_PRIVATE_KEY_PATH` or `GITHUB_APP_PRIVATE_KEY_COMMAND`, and either
+`GITHUB_APP_INSTALLATION_ID` or one of `GITHUB_APP_INSTALLATION_ORG`,
+`GITHUB_APP_INSTALLATION_REPO`, or `GITHUB_APP_INSTALLATION_USER`. Installation
+access tokens are refreshed automatically. See **[Local Server OAuth Login](docs/oauth-login.md#github-app-installation-authentication)** for details.
+
 Optionally, you can add a similar example (i.e. without the mcp key) to a file called `.vscode/mcp.json` in your workspace. This will allow you to share the configuration with other host applications that accept the same format.
 
 <details>

@@ -41,6 +41,113 @@
               "format": "string"
             }
           }
+        },
+        {
+          "type": "named",
+          "name": "-e",
+          "description": "Optional GitHub App ID for installation authentication.",
+          "value": "GITHUB_APP_ID={app_id}",
+          "isRequired": false,
+          "variables": {
+            "app_id": {
+              "isRequired": false,
+              "format": "string"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-v",
+          "description": "Optional GitHub App private key PEM file mounted read-only into the container.",
+          "value": "{app_private_key_path}:{app_private_key_path}:ro",
+          "isRequired": false,
+          "variables": {
+            "app_private_key_path": {
+              "isRequired": false,
+              "isSecret": true,
+              "format": "string"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-e",
+          "description": "Optional path to the mounted GitHub App private key PEM file.",
+          "value": "GITHUB_APP_PRIVATE_KEY_PATH={app_private_key_path}",
+          "isRequired": false,
+          "variables": {
+            "app_private_key_path": {
+              "isRequired": false,
+              "isSecret": true,
+              "format": "string"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-e",
+          "description": "Optional command that writes the GitHub App private key PEM to stdout. Use instead of GITHUB_APP_PRIVATE_KEY_PATH.",
+          "value": "GITHUB_APP_PRIVATE_KEY_COMMAND={app_private_key_command}",
+          "isRequired": false,
+          "variables": {
+            "app_private_key_command": {
+              "isRequired": false,
+              "isSecret": true,
+              "format": "string"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-e",
+          "description": "Optional GitHub App installation ID. Use this or one lookup target.",
+          "value": "GITHUB_APP_INSTALLATION_ID={app_installation_id}",
+          "isRequired": false,
+          "variables": {
+            "app_installation_id": {
+              "isRequired": false,
+              "format": "string"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-e",
+          "description": "Optional GitHub organization used to resolve the App installation ID.",
+          "value": "GITHUB_APP_INSTALLATION_ORG={app_installation_org}",
+          "isRequired": false,
+          "variables": {
+            "app_installation_org": {
+              "isRequired": false,
+              "format": "string"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-e",
+          "description": "Optional GitHub repository in owner/repo form used to resolve the App installation ID.",
+          "value": "GITHUB_APP_INSTALLATION_REPO={app_installation_repo}",
+          "isRequired": false,
+          "variables": {
+            "app_installation_repo": {
+              "isRequired": false,
+              "format": "string"
+            }
+          }
+        },
+        {
+          "type": "named",
+          "name": "-e",
+          "description": "Optional GitHub user used to resolve the App installation ID.",
+          "value": "GITHUB_APP_INSTALLATION_USER={app_installation_user}",
+          "isRequired": false,
+          "variables": {
+            "app_installation_user": {
+              "isRequired": false,
+              "format": "string"
+            }
+          }
         }
       ]
     }
